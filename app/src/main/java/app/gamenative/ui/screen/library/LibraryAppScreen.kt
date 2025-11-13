@@ -195,6 +195,9 @@ fun AppScreen(
     var isInstalled by remember(appId) {
         mutableStateOf(SteamService.isAppInstalled(gameId))
     }
+    var hasPartialDownload by remember(appId) {
+        mutableStateOf(SteamService.hasPartialDownload(gameId))
+    }
 
     val isValidToDownload by remember(appId) {
         mutableStateOf(appInfo.branches.isNotEmpty() && appInfo.depots.isNotEmpty())
@@ -241,12 +244,28 @@ fun AppScreen(
                 MarkerUtils.addMarker(getAppDirPath(gameId), Marker.DOWNLOAD_COMPLETE_MARKER)
             }
             downloadProgress = it
+            hasPartialDownload = it > 0f && it < 1f
         }
 
         downloadInfo?.addProgressListener(onDownloadProgress)
 
         onDispose {
             downloadInfo?.removeProgressListener(onDownloadProgress)
+        }
+    }
+
+    DisposableEffect(gameId) {
+        val onDownloadPaused: (AndroidEvent.DownloadPausedDueToConnectivity) -> Unit = { event ->
+            if (event.appId == gameId) {
+                scope.launch {
+                    downloadInfo = null
+                    hasPartialDownload = SteamService.hasPartialDownload(gameId)
+                }
+            }
+        }
+        PluviaApp.events.on(onDownloadPaused)
+        onDispose {
+            PluviaApp.events.off(onDownloadPaused)
         }
     }
 
@@ -416,9 +435,14 @@ fun AppScreen(
                         "game_name" to appInfo.name
                     ))
                 downloadInfo?.cancel()
-                SteamService.deleteApp(gameId)
+                val deleted = SteamService.deleteApp(gameId)
                 downloadInfo = null
                 downloadProgress = 0f
+                hasPartialDownload = if (deleted) {
+                    false
+                } else {
+                    SteamService.hasPartialDownload(gameId)
+                }
                 isInstalled = SteamService.isAppInstalled(gameId)
                 msgDialogState = MessageDialogState(false)
             }
@@ -491,11 +515,11 @@ fun AppScreen(
         }
 
         DialogType.UPDATE_VERIFY_CONFIRM -> {
-            onDismissRequest = { 
+            onDismissRequest = {
                 msgDialogState = MessageDialogState(false)
                 pendingUpdateVerifyOperation = null
             }
-            onDismissClick = { 
+            onDismissClick = {
                 msgDialogState = MessageDialogState(false)
                 pendingUpdateVerifyOperation = null
             }
@@ -503,7 +527,7 @@ fun AppScreen(
                 msgDialogState = MessageDialogState(false)
                 val operation = pendingUpdateVerifyOperation
                 pendingUpdateVerifyOperation = null
-                
+
                 if (operation != null) {
                     CoroutineScope(Dispatchers.IO).launch {
                         val container = ContainerUtils.getOrCreateContainer(context, appId)
@@ -631,6 +655,7 @@ fun AppScreen(
             isInstalled = isInstalled,
             isValidToDownload = isValidToDownload,
             isDownloading = isDownloading(),
+            hasPartialDownload = hasPartialDownload,
             downloadProgress = downloadProgress,
             onDownloadInstallClick = {
                 if (isDownloading()) {
@@ -913,6 +938,7 @@ private fun AppScreenContent(
     isInstalled: Boolean,
     isValidToDownload: Boolean,
     isDownloading: Boolean,
+    hasPartialDownload: Boolean,
     downloadProgress: Float,
     onDownloadInstallClick: () -> Unit,
     onPauseResumeClick: () -> Unit,
@@ -1124,7 +1150,7 @@ private fun AppScreenContent(
             ) {
                 // Pause/Resume and Delete when downloading or paused
                 // Determine if there's a partial download (in-session or from ungraceful close)
-                val isPartiallyDownloaded = (downloadProgress > 0f && downloadProgress < 1f) || SteamService.hasPartialDownload(appInfo.id)
+                val isPartiallyDownloaded = (downloadProgress > 0f && downloadProgress < 1f) || hasPartialDownload
                 // Disable resume when Wi-Fi only is enabled and there's no Wi-Fi
                 val isResume = !isDownloading && isPartiallyDownloaded
                 val pauseResumeEnabled = if (isResume) wifiAllowed else true
@@ -1175,7 +1201,7 @@ private fun AppScreenContent(
                         val text = when {
                             isInstalled -> stringResource(R.string.run_app)
                             !hasInternet -> "Need internet to install"
-                            !wifiConnected && PrefManager.downloadOnWifiOnly -> "Install over WiFi only enabled"
+                            !wifiConnected && PrefManager.downloadOnWifiOnly -> "Install over Wi-Fi/LAN only enabled"
                             else -> stringResource(R.string.install_app)
                         }
                         Text(
@@ -1588,6 +1614,7 @@ private fun Preview_AppScreen() {
                 isInstalled = false,
                 isValidToDownload = true,
                 isDownloading = isDownloading,
+                hasPartialDownload = false,
                 downloadProgress = .50f,
                 onDownloadInstallClick = { isDownloading = !isDownloading },
                 onPauseResumeClick = { },

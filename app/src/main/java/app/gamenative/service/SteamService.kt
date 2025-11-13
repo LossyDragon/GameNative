@@ -1769,9 +1769,10 @@ class SteamService : Service(), IChallengeUrlChanged {
                 isWifiConnected = false
                 if (PrefManager.downloadOnWifiOnly) {
                     // Pause all ongoing downloads
-                    for ((_, info) in downloadJobs) {
+                    for ((appId, info) in downloadJobs.entries.toList()) {
                         Timber.d("Cancelling job")
                         info.cancel()
+                        PluviaApp.events.emit(AndroidEvent.DownloadPausedDueToConnectivity(appId))
                     }
                     downloadJobs.clear()
                     notificationHelper.notify("Download paused – waiting for Wi-Fi/LAN")
