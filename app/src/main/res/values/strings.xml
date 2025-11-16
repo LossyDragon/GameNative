@@ -185,6 +185,7 @@
     <string name="remove_driver_confirmation">Are you sure you want to remove driver "%s"? This cannot be undone</string>
 
     <!-- Container Configuration: Steam Integration -->
+    <string name="use_legacy_drm">Use Legacy DRM</string>
     <string name="force_dlc">Force DLC</string>
     <string name="force_dlc_description">Only enable if DLCs are not detected or saves with DLC are not working</string>
     <string name="launch_steam_client_beta">Launch Steam Client (Beta)</string>
