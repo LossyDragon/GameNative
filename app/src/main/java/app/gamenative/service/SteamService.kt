@@ -984,8 +984,8 @@ class SteamService : Service(), IChallengeUrlChanged {
                         val depotDownloader = DepotDownloader(
                             instance!!.steamClient!!,
                             licenses,
-                            false,
-                            androidEmulation = true
+                            debug = false,
+                            androidEmulation = true,
                         )
 
                         // Create listener

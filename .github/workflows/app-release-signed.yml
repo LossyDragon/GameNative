@@ -43,6 +43,15 @@ jobs:
         echo "storePassword=$KEYSTORE_STORE_PASSWORD" >> app/keystores/keystore.properties
         echo "keyPassword=$KEYSTORE_KEY_PASSWORD" >> app/keystores/keystore.properties
 
+    - name: Inject credentials
+      run: |
+        cat <<EOF > local.properties
+        POSTHOG_API_KEY=${{ secrets.POSTHOG_API_KEY }}
+        POSTHOG_HOST=${{ secrets.POSTHOG_HOST }}
+        SUPABASE_URL=${{ secrets.SUPABASE_URL }}
+        SUPABASE_KEY=${{ secrets.SUPABASE_KEY }}
+        EOF
+
     - name: Build with Gradle
       run: ./gradlew :app:bundleRelease-signed
 
