@@ -83,6 +83,11 @@ jobs:
         java -jar tools/bundletool-all-1.17.2.jar build-apks --bundle=app/build/outputs/bundle/release/app-release.aab --output=app-release.apks --mode=universal
         unzip -o app-release.apks universal.apk
 
+    - name: Copy lineage file
+      run: |
+        mkdir -p app/keystores
+        cp prod-debug.lineage app/keystores/prod-debug.lineage
+
     - name: Dual sign universal APK
       env:
         DEBUG_ALIAS: ${{ secrets.KEYSTORE_KEY_ALIAS }}
@@ -97,11 +102,14 @@ jobs:
           BUILD_TOOLS_DIR="${ANDROID_SDK_ROOT}/build-tools/34.0.0"
         fi
         "${BUILD_TOOLS_DIR}/apksigner" sign \
+          --lineage app/keystores/prod-debug.lineage \
+          --lineage-signer old \
           --ks app/keystores/keystore \
           --ks-key-alias "$DEBUG_ALIAS" \
           --ks-pass pass:$DEBUG_STORE_PASS \
           --key-pass pass:$DEBUG_KEY_PASS \
           --next-signer --ks app/keystores/prod.keystore \
+          --lineage-signer new \
           --ks-key-alias "$PROD_ALIAS" \
           --ks-pass pass:$PROD_STORE_PASS \
           --key-pass pass:$PROD_KEY_PASS \
