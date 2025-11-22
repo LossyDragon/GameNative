@@ -19,7 +19,6 @@ internal object CustomGameCache {
      */
     fun buildCache(
         getManualFolders: () -> Set<String>,
-        looksLikeGameFolder: (File) -> Boolean,
         readGameIdFromFile: (File) -> Int?
     ): Map<Int, String> {
         val cache = mutableMapOf<Int, String>()
@@ -28,7 +27,6 @@ internal object CustomGameCache {
         for (path in manualFolders) {
             val folder = File(path)
             if (!folder.exists() || !folder.isDirectory) continue
-            if (!looksLikeGameFolder(folder)) continue
 
             val folderId = readGameIdFromFile(folder)
                 ?: abs(folder.absolutePath.hashCode()).let { if (it == 0) 1 else it }
@@ -46,7 +44,6 @@ internal object CustomGameCache {
      */
     fun getOrRebuildCache(
         getManualFolders: () -> Set<String>,
-        looksLikeGameFolder: (File) -> Boolean,
         readGameIdFromFile: (File) -> Int?
     ): Map<Int, String> {
         val currentManualFolders = getManualFolders()
@@ -54,7 +51,7 @@ internal object CustomGameCache {
         
         // Rebuild if manual folders changed or cache is null
         if (appIdCache == null || cachedManual != currentManualFolders) {
-            appIdCache = buildCache(getManualFolders, looksLikeGameFolder, readGameIdFromFile)
+            appIdCache = buildCache(getManualFolders, readGameIdFromFile)
             cacheManualFolders = currentManualFolders
         }
         

@@ -410,9 +410,7 @@ object CustomGameScanner {
     }
 
     /**
-     * Scan manual folders for custom games.
-     * A folder qualifies if it contains at least one .exe file (case-insensitive)
-     * at depth <= 2 (folder itself or one level below).
+     * All manually added folders are included regardless of content.
      * Optionally filter by [query] contained in folder name (case-insensitive).
      */
     fun scanAsLibraryItems(query: String = "", indexOffsetStart: Int = 0, includeWhenInstalledFilterActive: Boolean = true): List<LibraryItem> {
@@ -476,10 +474,6 @@ object CustomGameScanner {
             return null
         }
 
-        if (!looksLikeGameFolder(folder)) {
-            Timber.tag("CustomGameScanner").w("Folder is not a valid custom game (missing .exe): $folderPath")
-            return null
-        }
 
         val idPart = getOrGenerateGameId(folder)
         val appId = "${GameSource.CUSTOM_GAME.name}_$idPart"
@@ -496,34 +490,6 @@ object CustomGameScanner {
         )
     }
 
-    private fun looksLikeGameFolder(dir: File): Boolean {
-        if (!dir.exists() || !dir.isDirectory) {
-            Timber.tag("CustomGameScanner").d("looksLikeGameFolder: ${dir.path} does not exist or is not a directory")
-            return false
-        }
-
-        val rootExeFiles = dir.listFiles { file ->
-            file.isFile && file.name.endsWith(".exe", ignoreCase = true)
-        }
-        if (rootExeFiles != null && rootExeFiles.isNotEmpty()) {
-            Timber.tag("CustomGameScanner").d("looksLikeGameFolder: ${dir.name} has .exe in root")
-            return true
-        }
-
-        val subDirs = dir.listFiles { it.isDirectory } ?: return false
-        for (sd in subDirs) {
-            val subExeFiles = sd.listFiles { file ->
-                file.isFile && file.name.endsWith(".exe", ignoreCase = true)
-            }
-            if (subExeFiles != null && subExeFiles.isNotEmpty()) {
-                Timber.tag("CustomGameScanner").d("looksLikeGameFolder: ${dir.name} has .exe in subdirectory ${sd.name}")
-                return true
-            }
-        }
-
-        Timber.tag("CustomGameScanner").d("looksLikeGameFolder: ${dir.name} does not contain any .exe files")
-        return false
-    }
 
     /**
      * Reads the game ID from the .gamenative file in the given folder.
@@ -565,7 +531,6 @@ object CustomGameScanner {
     private fun getOrRebuildCache(): Map<Int, String> {
         return CustomGameCache.getOrRebuildCache(
             getManualFolders = { PrefManager.customGameManualFolders },
-            looksLikeGameFolder = { folder -> looksLikeGameFolder(folder) },
             readGameIdFromFile = { folder -> readGameIdFromFile(folder) }
         )
     }
