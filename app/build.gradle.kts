@@ -1,3 +1,4 @@
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import java.util.Properties
 import java.io.FileInputStream
 
@@ -29,7 +30,7 @@ val supabaseKey: String = project.findProperty("SUPABASE_KEY") as String? ?: Sys
 
 android {
     namespace = "app.gamenative"
-    compileSdk = 35
+    compileSdk = 36
 
     // https://developer.android.com/ndk/downloads
     ndkVersion = "22.1.7171670"
@@ -59,9 +60,9 @@ android {
             project.findProperty(name) as String? ?: System.getenv(name) ?: ""
 
         buildConfigField("String", "POSTHOG_API_KEY", "\"${secret("POSTHOG_API_KEY")}\"")
-        buildConfigField("String", "POSTHOG_HOST",  "\"${secret("POSTHOG_HOST")}\"")
-        buildConfigField("String", "SUPABASE_URL",  "\"${secret("SUPABASE_URL")}\"")
-        buildConfigField("String", "SUPABASE_KEY",  "\"${secret("SUPABASE_KEY")}\"")
+        buildConfigField("String", "POSTHOG_HOST", "\"${secret("POSTHOG_HOST")}\"")
+        buildConfigField("String", "SUPABASE_URL", "\"${secret("SUPABASE_URL")}\"")
+        buildConfigField("String", "SUPABASE_KEY", "\"${secret("SUPABASE_KEY")}\"")
         buildConfigField("String", "STEAMGRIDDB_API_KEY", "\"${secret("STEAMGRIDDB_API_KEY")}\"")
         val iconValue = "@mipmap/ic_launcher"
         val iconRoundValue = "@mipmap/ic_launcher_round"
@@ -139,8 +140,10 @@ android {
         targetCompatibility = JavaVersion.VERSION_17
     }
 
-    kotlinOptions {
-        jvmTarget = "17"
+    kotlin {
+        compilerOptions {
+            jvmTarget.set(JvmTarget.JVM_17)
+        }
     }
 
     buildFeatures {
@@ -176,7 +179,7 @@ android {
     dynamicFeatures += setOf(":ubuntufs")
 
     kotlinter {
-        ignoreFormatFailures  = false
+        ignoreFormatFailures = false
     }
 
     // build extras needed in libwinlator_bionic.so
